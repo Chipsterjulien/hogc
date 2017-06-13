@@ -276,8 +276,8 @@ int main(int argc, char **argv) {
   double ratioResizeWidth, ratioResizeHeight;
   string camStream, recordPath;
 
-
-  config.Load("cfg/hog.ini");
+  // config.Load("cfg/hogc_sample.ini");
+  config.Load("/etc/hogc/hogc.ini");
 
   getConfig(config, &debug, &camNumber, &camStream, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
   searchHuman(&debug, &camNumber, &camStream, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
