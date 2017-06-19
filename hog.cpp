@@ -141,9 +141,10 @@ string Configuration::Trim(const string& str) {
   }
 }
 
-void getConfig(Configuration config, bool* debug, int* camNumber, string* camStream, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
+void getConfig(Configuration config, bool* debug, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
   config.Get("camNumber", *camNumber);
   config.Get("camStream", *camStream);
+  config.Get("imageFile", *imageFile);
   config.Get("videoWidth", *videoWidth);
   config.Get("videoHeight", *videoHeight);
   config.Get("fps", *fps);
@@ -171,18 +172,30 @@ string getFilename() {
   return returnTimeStr;
 }
 
-void searchHuman(bool* debug, int* camNumber, string* camStream, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
+void searchHuman(bool* debug, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
   VideoCapture cap;
   useconds_t Sleep = (*sleepTime) * 1000;
 
-  if ((*camStream).size() != 0) {
-    cap.open(*camStream);
-  } else {
-    cap.open(*camNumber);
-  }
+  if (*imageFile == "") {
+    if ((*camStream).size() != 0) {
+      cap.open(*camStream);
+    } else {
+      cap.open(*camNumber);
+    }
 
-  if (!cap.isOpened()) {
-    exit(EXIT_FAILURE);
+    if (!cap.isOpened()) {
+      exit(EXIT_FAILURE);
+    }
+    if (*videoWidth != 0 && *videoHeight != 0) {
+      cap.set(CV_CAP_PROP_FOURCC, CV_FOURCC('M', 'J', 'P', 'G'));
+      cap.set(CV_CAP_PROP_FRAME_WIDTH, *videoWidth);
+      cap.set(CV_CAP_PROP_FRAME_HEIGHT, *videoHeight);
+    }
+
+    if (*fps != 0 && (*camStream).size() == 0) {
+      // Set the capture FPS
+      cap.set(CV_CAP_PROP_FPS, *fps);
+    }
   }
 
   Mat frame;
@@ -190,24 +203,19 @@ void searchHuman(bool* debug, int* camNumber, string* camStream, double* ratioRe
   hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
   vector < Rect > found, found_filtered;
 
-  if (*videoWidth != 0 && *videoHeight != 0) {
-    cap.set(CV_CAP_PROP_FOURCC, CV_FOURCC('M', 'J', 'P', 'G'));
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, *videoWidth);
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, *videoHeight);
-  }
-
-  if (*fps != 0 && (*camStream).size() == 0) {
-    // Set the capture FPS
-    cap.set(CV_CAP_PROP_FPS, *fps);
-  }
 
   vector<int> compression_params;
   compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
   compression_params.push_back(75);
 
   for (;;) {
-    // read img
-    cap >> frame;
+    if (*imageFile != "") {
+      // read image file
+      frame = imread(*imageFile);
+    } else {
+      // read img frame camera or stream
+      cap >> frame;
+    }
 
     // Test if frame is not empty
     if (frame.empty()) {
@@ -274,13 +282,13 @@ int main(int argc, char **argv) {
   bool debug;
   int camNumber, videoWidth, videoHeight, fps, sleepTime, jpgQuality;
   double ratioResizeWidth, ratioResizeHeight;
-  string camStream, recordPath;
+  string camStream, imageFile, recordPath;
 
-  // config.Load("cfg/hogc_sample.ini");
-  config.Load("/etc/hogc/hogc.ini");
+  config.Load("cfg/hogc_sample.ini");
+  // config.Load("/etc/hogc/hogc.ini");
 
-  getConfig(config, &debug, &camNumber, &camStream, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
-  searchHuman(&debug, &camNumber, &camStream, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
+  getConfig(config, &debug, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
+  searchHuman(&debug, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
 
   if (debug)
     cerr << "End of program in debug mode" << endl;
