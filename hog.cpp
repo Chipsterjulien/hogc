@@ -4,8 +4,10 @@
 #include <fstream> // Use to open and read files
 #include <unistd.h>
 #include <sstream>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 using namespace cv;
 
 class Configuration {
@@ -141,7 +143,7 @@ string Configuration::Trim(const string& str) {
   }
 }
 
-void getConfig(Configuration config, bool* debug, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
+void getConfig(Configuration config, bool* debug, bool* exitNoFrame, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
   config.Get("camNumber", *camNumber);
   config.Get("camStream", *camStream);
   config.Get("imageFile", *imageFile);
@@ -154,6 +156,7 @@ void getConfig(Configuration config, bool* debug, int* camNumber, string* camStr
   config.Get("recordPath", *recordPath);
   config.Get("jpgQuality", *jpgQuality);
   config.Get("debug", *debug);
+  config.Get("exitNoFrame", *exitNoFrame);
 }
 
 string getFilename() {
@@ -172,7 +175,40 @@ string getFilename() {
   return returnTimeStr;
 }
 
-void searchHuman(bool* debug, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
+void drawRectangle(Mat* frame, vector< Rect >* found, vector< Rect >* found_filtered) {
+  size_t i, j;
+  for (i = 0; i < (*found).size(); i++) {
+    Rect r = (*found)[i];
+    for (j = 0; j < (*found).size(); j++)
+      if (j != i && (r & (*found)[j]) == r)
+        break;
+    if (j == (*found).size())
+      (*found_filtered).push_back(r);
+  }
+
+  for (i = 0; i < (*found_filtered).size(); i++) {
+    Rect r = (*found_filtered)[i];
+    r.x += cvRound(r.width * 0.1);
+    r.width = cvRound(r.width * 0.8);
+    r.y += cvRound(r.height * 0.07);
+    r.height = cvRound(r.height * 0.8);
+    rectangle(*frame, r.tl(), r.br(), Scalar(0, 255, 0), 3);
+  }
+}
+
+void recordPicture(bool* debug, Mat* frame, vector<int>* compression_params, string* recordPath, vector< Rect >* found) {
+  if ((*found).size() != 0) {
+    string filename;
+    filename.append(*recordPath).append(getFilename()).append(".jpg");
+    imwrite(filename, *frame, *compression_params);
+  }
+
+  if (*debug && (*found).size() != 0) {
+    cerr << "Found" << endl;
+  }
+}
+
+void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
   VideoCapture cap;
   useconds_t Sleep = (*sleepTime) * 1000;
 
@@ -206,7 +242,7 @@ void searchHuman(bool* debug, int* camNumber, string* camStream, string* imageFi
 
   vector<int> compression_params;
   compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
-  compression_params.push_back(75);
+  compression_params.push_back(*jpgQuality);
 
   for (;;) {
     if (*imageFile != "") {
@@ -219,55 +255,57 @@ void searchHuman(bool* debug, int* camNumber, string* camStream, string* imageFi
 
     // Test if frame is not empty
     if (frame.empty()) {
-      cerr << "No image to process !" << endl;
-      break;
-    }
-
-    // resize frame;
-    resize(frame, frame, Size(), *ratioResizeWidth, *ratioResizeHeight);
-    // Detect human
-    hog.detectMultiScale(frame, found);
-    // Draw rectangle around human
-    size_t i, j;
-    for (i = 0; i < found.size(); i++) {
-      Rect r = found[i];
-      for (j = 0; j < found.size(); j++)
-        if (j != i && (r & found[j]) == r)
-          break;
-      if (j == found.size())
-        found_filtered.push_back(r);
-    }
-
-    for (i = 0; i < found_filtered.size(); i++) {
-      Rect r = found_filtered[i];
-      r.x += cvRound(r.width * 0.1);
-      r.width = cvRound(r.width * 0.8);
-      r.y += cvRound(r.height * 0.07);
-      r.height = cvRound(r.height * 0.8);
-      rectangle(frame, r.tl(), r.br(), Scalar(0, 255, 0), 3);
-    }
-
-    if (found.size() != 0) {
-      string filename;
-      filename.append(*recordPath).append(getFilename()).append(".jpg");
-      imwrite(filename, frame, compression_params);
-    }
-
-    if (debug && found.size() != 0) {
-      cerr << "Found" << endl;
-    }
-
-    if (debug) {
-      imshow("Output", frame);
-      if (waitKey(10) == 27) {
+      if (exitNoFrame) {
+        cerr << "No image to process !" << endl;
         break;
+      } else {
+        continue;
       }
     }
 
-    found.clear();
-    found_filtered.clear();
+    // resize frame;
+    if (*ratioResizeWidth != 1 || *ratioResizeHeight != 1)
+      resize(frame, frame, Size(), *ratioResizeWidth, *ratioResizeHeight);
 
-    if (sleepTime != 0) {
+    // Detect human
+    if (debug) {
+      high_resolution_clock::time_point t1 = high_resolution_clock::now();
+      high_resolution_clock::time_point t2;
+
+      hog.detectMultiScale(frame, found);
+      t2 = high_resolution_clock::now();
+
+      auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+      // Draw rectangle around human
+      drawRectangle(&frame, &found, &found_filtered);
+      recordPicture(debug, &frame, &compression_params, recordPath, &found);
+      // free memory before sleep
+      frame.release();
+      // clear vectors
+      found.clear();
+      found_filtered.clear();
+
+      cerr << duration / 1000.0 << "ms" << endl;
+    } else {
+      hog.detectMultiScale(frame, found);
+      // Draw rectangle around human
+      drawRectangle(&frame, &found, &found_filtered);
+      recordPicture(debug, &frame, &compression_params, recordPath, &found);
+      // free memory before sleep
+      frame.release();
+      // clear vectors
+      found.clear();
+      found_filtered.clear();
+    }
+
+    // if (debug) {
+    //   imshow("Output", frame);
+    //   if (waitKey(10) == 27) {
+    //     break;
+    //   }
+    // }
+
+    if (sleepTime >= 0) {
       usleep(Sleep);
     }
   }
@@ -279,16 +317,20 @@ void searchHuman(bool* debug, int* camNumber, string* camStream, string* imageFi
 int main(int argc, char **argv) {
   Configuration config;
 
-  bool debug;
+  bool debug, exitNoFrame;
   int camNumber, videoWidth, videoHeight, fps, sleepTime, jpgQuality;
   double ratioResizeWidth, ratioResizeHeight;
   string camStream, imageFile, recordPath;
 
-  config.Load("cfg/hogc_sample.ini");
-  // config.Load("/etc/hogc/hogc.ini");
+  // config.Load("cfg/hogc_sample.ini");
+  config.Load("/etc/hogc/hogc.ini");
 
-  getConfig(config, &debug, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
-  searchHuman(&debug, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
+  if (debug)
+    cerr << "load config" << endl;
+  getConfig(config, &debug, &exitNoFrame, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
+  if (debug)
+    cerr << "config has been loaded" << endl;
+  searchHuman(&debug, &exitNoFrame, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
 
   if (debug)
     cerr << "End of program in debug mode" << endl;
