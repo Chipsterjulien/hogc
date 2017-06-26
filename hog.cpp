@@ -177,16 +177,16 @@ string getFilename() {
 
 void drawRectangle(Mat* frame, vector< Rect >* found, vector< Rect >* found_filtered) {
   size_t i, j;
-  for (i = 0; i < (*found).size(); i++) {
+  for (i = 0; i < found->size(); i++) {
     Rect r = (*found)[i];
-    for (j = 0; j < (*found).size(); j++)
+    for (j = 0; j < found->size(); j++)
       if (j != i && (r & (*found)[j]) == r)
         break;
-    if (j == (*found).size())
+    if (j == found->size())
       (*found_filtered).push_back(r);
   }
 
-  for (i = 0; i < (*found_filtered).size(); i++) {
+  for (i = 0; i < found_filtered->size(); i++) {
     Rect r = (*found_filtered)[i];
     r.x += cvRound(r.width * 0.1);
     r.width = cvRound(r.width * 0.8);
@@ -197,13 +197,13 @@ void drawRectangle(Mat* frame, vector< Rect >* found, vector< Rect >* found_filt
 }
 
 void recordPicture(bool* debug, Mat* frame, vector<int>* compression_params, string* recordPath, vector< Rect >* found) {
-  if ((*found).size() != 0) {
+  if (found->size() != 0) {
     string filename;
     filename.append(*recordPath).append(getFilename()).append(".jpg");
     imwrite(filename, *frame, *compression_params);
   }
 
-  if (*debug && (*found).size() != 0) {
+  if (*debug && found->size() != 0) {
     cerr << "Found" << endl;
   }
 }
@@ -213,7 +213,7 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStre
   useconds_t Sleep = (*sleepTime) * 1000;
 
   if (*imageFile == "") {
-    if ((*camStream).size() != 0) {
+    if (camStream->size() != 0) {
       cap.open(*camStream);
     } else {
       cap.open(*camNumber);
@@ -228,7 +228,7 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStre
       cap.set(CV_CAP_PROP_FRAME_HEIGHT, *videoHeight);
     }
 
-    if (*fps != 0 && (*camStream).size() == 0) {
+    if (*fps != 0 && camStream->size() == 0) {
       // Set the capture FPS
       cap.set(CV_CAP_PROP_FPS, *fps);
     }
@@ -238,7 +238,6 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStre
   HOGDescriptor hog;
   hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
   vector < Rect > found, found_filtered;
-
 
   vector<int> compression_params;
   compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
@@ -259,6 +258,8 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStre
         cerr << "No image to process !" << endl;
         break;
       } else {
+        usleep(1000000);
+        cerr << "I sleep 1s and I'm waiting frame" << endl;
         continue;
       }
     }
