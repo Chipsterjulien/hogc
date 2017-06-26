@@ -254,7 +254,7 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStre
 
     // Test if frame is not empty
     if (frame.empty()) {
-      if (exitNoFrame) {
+      if (*exitNoFrame) {
         cerr << "No image to process !" << endl;
         break;
       } else {
