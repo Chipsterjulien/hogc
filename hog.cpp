@@ -1,30 +1,55 @@
-#include "hog.hpp"
+#include <opencv2/opencv.hpp>
+#include <stdio.h>
+#include <map>
+#include <fstream> // Use to open and read files
+#include <unistd.h>
+#include <sstream>
+#include <chrono>
 
-// using namespace std;
-// using namespace std::chrono;
-// using namespace cv;
+using namespace std;
+using namespace std::chrono;
+using namespace cv;
+
+class Configuration {
+public:
+  void Clear();
+  bool Load(const string& file);
+  bool Contains(const string& key) const;
+
+  // get value associated with given key
+  bool Get(const string& key, string& value) const;
+  bool Get(const string& key, int&    value) const;
+  bool Get(const string& key, long&   value) const;
+  bool Get(const string& key, double& value) const;
+  bool Get(const string& key, bool&   value) const;
+
+private:
+  map<string, string> data;
+
+  static string Trim(const string& str);
+};
 
 void Configuration::Clear() {
   data.clear();
 }
 
-bool Configuration::Load(const std::string& file) {
-  std::ifstream inFile(file.c_str());
+bool Configuration::Load(const string& file) {
+  ifstream inFile(file.c_str());
 
   if (!inFile.good()) {
-      std::cout << "Cannot read configuration file " << file << std::endl;
+      cout << "Cannot read configuration file " << file << endl;
       return false;
   }
 
   while (inFile.good() && ! inFile.eof()) {
-    std::string line;
+    string line;
     getline(inFile, line);
 
     // filter out comments
     if (!line.empty()) {
       int pos = line.find('#');
 
-      if (pos != std::string::npos) {
+      if (pos != string::npos) {
           line = line.substr(0, pos);
       }
     }
@@ -33,9 +58,9 @@ bool Configuration::Load(const std::string& file) {
     if (!line.empty()) {
       int pos = line.find('=');
 
-      if (pos != std::string::npos) {
-        std::string key     = Trim(line.substr(0, pos));
-        std::string value   = Trim(line.substr(pos + 1));
+      if (pos != string::npos) {
+        string key     = Trim(line.substr(0, pos));
+        string value   = Trim(line.substr(pos + 1));
 
         if (!key.empty() && !value.empty()) {
             data[key] = value;
@@ -47,12 +72,12 @@ bool Configuration::Load(const std::string& file) {
   return true;
 }
 
-bool Configuration::Contains(const std::string& key) const {
+bool Configuration::Contains(const string& key) const {
   return data.find(key) != data.end();
 }
 
-bool Configuration::Get(const std::string& key, std::string& value) const {
-  std::map<std::string,std::string>::const_iterator iter = data.find(key);
+bool Configuration::Get(const string& key, string& value) const {
+  map<string,string>::const_iterator iter = data.find(key);
 
   if (iter != data.end()) {
       value = iter->second;
@@ -62,8 +87,8 @@ bool Configuration::Get(const std::string& key, std::string& value) const {
   }
 }
 
-bool Configuration::Get(const std::string& key, int& value) const {
-  std::string str;
+bool Configuration::Get(const string& key, int& value) const {
+  string str;
 
   if (Get(key, str)) {
       value = atoi(str.c_str());
@@ -73,8 +98,8 @@ bool Configuration::Get(const std::string& key, int& value) const {
   }
 }
 
-bool Configuration::Get(const std::string& key, long& value) const {
-  std::string str;
+bool Configuration::Get(const string& key, long& value) const {
+  string str;
 
   if (Get(key, str)) {
       value = atol(str.c_str());
@@ -84,8 +109,8 @@ bool Configuration::Get(const std::string& key, long& value) const {
   }
 }
 
-bool Configuration::Get(const std::string& key, double& value) const {
-  std::string str;
+bool Configuration::Get(const string& key, double& value) const {
+  string str;
 
   if (Get(key, str)) {
       value = atof(str.c_str());
@@ -95,8 +120,8 @@ bool Configuration::Get(const std::string& key, double& value) const {
   }
 }
 
-bool Configuration::Get(const std::string& key, bool& value) const {
-  std::string str;
+bool Configuration::Get(const string& key, bool& value) const {
+  string str;
 
   if (Get(key, str)) {
       value = (str == "true");
@@ -106,10 +131,10 @@ bool Configuration::Get(const std::string& key, bool& value) const {
   }
 }
 
-std::string Configuration::Trim(const std::string& str) {
+string Configuration::Trim(const string& str) {
   int first = str.find_first_not_of(" \t");
 
-  if (first != std::string::npos) {
+  if (first != string::npos) {
       int last = str.find_last_not_of(" \t");
 
       return str.substr(first, last - first + 1);
@@ -118,7 +143,7 @@ std::string Configuration::Trim(const std::string& str) {
   }
 }
 
-void getConfig(Configuration config, bool* debug, bool* exitNoFrame, int* camNumber, std::string* camStream, std::string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, std::string* recordPath, int* jpgQuality) {
+void getConfig(Configuration config, bool* debug, bool* exitNoFrame, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
   config.Get("camNumber", *camNumber);
   config.Get("camStream", *camStream);
   config.Get("imageFile", *imageFile);
@@ -134,11 +159,11 @@ void getConfig(Configuration config, bool* debug, bool* exitNoFrame, int* camNum
   config.Get("exitNoFrame", *exitNoFrame);
 }
 
-std::string getFilename() {
+string getFilename() {
   time_t current_time;
   struct tm * time_info;
   char timeString[20];
-  std::string returnTimeStr;
+  string returnTimeStr;
 
   time(&current_time);
   time_info = localtime(&current_time);
@@ -150,10 +175,10 @@ std::string getFilename() {
   return returnTimeStr;
 }
 
-void drawRectangle(cv::Mat* frame, std::vector< cv::Rect >* found, std::vector< cv::Rect >* found_filtered) {
+void drawRectangle(Mat* frame, vector< Rect >* found, vector< Rect >* found_filtered) {
   size_t i, j;
   for (i = 0; i < found->size(); i++) {
-    cv::Rect r = (*found)[i];
+    Rect r = (*found)[i];
     for (j = 0; j < found->size(); j++)
       if (j != i && (r & (*found)[j]) == r)
         break;
@@ -162,29 +187,29 @@ void drawRectangle(cv::Mat* frame, std::vector< cv::Rect >* found, std::vector< 
   }
 
   for (i = 0; i < found_filtered->size(); i++) {
-    cv::Rect r = (*found_filtered)[i];
+    Rect r = (*found_filtered)[i];
     r.x += cvRound(r.width * 0.1);
     r.width = cvRound(r.width * 0.8);
     r.y += cvRound(r.height * 0.07);
     r.height = cvRound(r.height * 0.8);
-    rectangle(*frame, r.tl(), r.br(), cv::Scalar(0, 255, 0), 3);
+    rectangle(*frame, r.tl(), r.br(), Scalar(0, 255, 0), 3);
   }
 }
 
-void recordPicture(bool* debug, cv::Mat* frame, std::vector<int>* compression_params, std::string* recordPath, std::vector< cv::Rect >* found) {
+void recordPicture(bool* debug, Mat* frame, vector<int>* compression_params, string* recordPath, vector< Rect >* found) {
   if (found->size() != 0) {
-    std::string filename;
+    string filename;
     filename.append(*recordPath).append(getFilename()).append(".jpg");
     imwrite(filename, *frame, *compression_params);
   }
 
   if (*debug && found->size() != 0) {
-    std::cerr << "Found" << std::endl;
+    cerr << "Found" << endl;
   }
 }
 
-void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, std::string* camStream, std::string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, std::string* recordPath, int* jpgQuality) {
-  cv::VideoCapture cap;
+void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, string* camStream, string* imageFile, double* ratioResizeWidth, double* ratioResizeHeight, int* videoWidth, int* videoHeight, int* fps, int* sleepTime, string* recordPath, int* jpgQuality) {
+  VideoCapture cap;
   useconds_t Sleep = (*sleepTime) * 1000;
 
   if (*imageFile == "") {
@@ -209,19 +234,19 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, std::string* ca
     }
   }
 
-  cv::Mat frame;
-  cv::HOGDescriptor hog;
-  hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
-  std::vector < cv::Rect > found, found_filtered;
+  Mat frame;
+  HOGDescriptor hog;
+  hog.setSVMDetector(HOGDescriptor::getDefaultPeopleDetector());
+  vector < Rect > found, found_filtered;
 
-  std::vector<int> compression_params;
+  vector<int> compression_params;
   compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
   compression_params.push_back(*jpgQuality);
 
   for (;;) {
     if (*imageFile != "") {
       // read image file
-      frame = cv::imread(*imageFile);
+      frame = imread(*imageFile);
     } else {
       // read img frame camera or stream
       cap >> frame;
@@ -230,28 +255,28 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, std::string* ca
     // Test if frame is not empty
     if (frame.empty()) {
       if (*exitNoFrame) {
-        std::cerr << "No image to process !" << std::endl;
+        cerr << "No image to process !" << endl;
         break;
       } else {
         usleep(1000000);
-        std::cerr << "I sleep 1s and I'm waiting frame" << std::endl;
+        cerr << "I sleep 1s and I'm waiting frame" << endl;
         continue;
       }
     }
 
     // resize frame;
     if (*ratioResizeWidth != 1 || *ratioResizeHeight != 1)
-      resize(frame, frame, cv::Size(), *ratioResizeWidth, *ratioResizeHeight);
+      resize(frame, frame, Size(), *ratioResizeWidth, *ratioResizeHeight);
 
     // Detect human
     if (debug) {
-      std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-      std::chrono::high_resolution_clock::time_point t2;
+      high_resolution_clock::time_point t1 = high_resolution_clock::now();
+      high_resolution_clock::time_point t2;
 
       hog.detectMultiScale(frame, found);
-      t2 = std::chrono::high_resolution_clock::now();
+      t2 = high_resolution_clock::now();
 
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+      auto duration = duration_cast<microseconds>( t2 - t1 ).count();
       // Draw rectangle around human
       drawRectangle(&frame, &found, &found_filtered);
       recordPicture(debug, &frame, &compression_params, recordPath, &found);
@@ -261,7 +286,7 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, std::string* ca
       found.clear();
       found_filtered.clear();
 
-      std::cerr << duration / 1000.0 << "ms" << std::endl;
+      cerr << duration / 1000.0 << "ms" << endl;
     } else {
       hog.detectMultiScale(frame, found);
       // Draw rectangle around human
@@ -286,7 +311,7 @@ void searchHuman(bool* debug, bool* exitNoFrame, int* camNumber, std::string* ca
     }
   }
 
-  cv::destroyAllWindows();
+  destroyAllWindows();
 }
 
 
@@ -296,20 +321,20 @@ int main(int argc, char **argv) {
   bool debug, exitNoFrame;
   int camNumber, videoWidth, videoHeight, fps, sleepTime, jpgQuality;
   double ratioResizeWidth, ratioResizeHeight;
-  std::string camStream, imageFile, recordPath;
+  string camStream, imageFile, recordPath;
 
   // config.Load("cfg/hogc_sample.ini");
   config.Load("/etc/hogc/hogc.ini");
 
   if (debug)
-    std::cerr << "load config" << std::endl;
+    cerr << "load config" << endl;
   getConfig(config, &debug, &exitNoFrame, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
   if (debug)
-    std::cerr << "config has been loaded" << std::endl;
+    cerr << "config has been loaded" << endl;
   searchHuman(&debug, &exitNoFrame, &camNumber, &camStream, &imageFile, &ratioResizeWidth, &ratioResizeHeight, &videoWidth, &videoHeight, &fps, &sleepTime, &recordPath, &jpgQuality);
 
   if (debug)
-    std::cerr << "End of program in debug mode" << std::endl;
+    cerr << "End of program in debug mode" << endl;
 
   return EXIT_SUCCESS;
 }
