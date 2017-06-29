@@ -4,7 +4,8 @@
 Configuration::Configuration() {
   this->debug = false;
   this->exitIfNoFrame = false;
-  this->camNumber = -1;
+  // Autodetect default API
+  this->camNumber = (0 + cv::CAP_ANY);
   this->fps = 0;
   this->sleepTime = 0;
   this->videoWidth = 320;
