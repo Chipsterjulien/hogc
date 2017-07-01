@@ -26,6 +26,7 @@ class Configuration {
 
     bool getDebug() const;
     bool getExitIfNoFrame() const;
+    bool getUseMeanshiftGrouping() const;
 
     int getCamNumber() const;
     int getFPS() const;
@@ -37,15 +38,22 @@ class Configuration {
 
     double getRatioResizeWidth() const;
     double getRatioResizeHeight() const;
+    double getHitThreshold() const;
+    double getScale() const;
+    double getFinalThreshold() const;
 
     std::string getCamStream() const;
     std::string getImageFile() const;
     std::string getRecordPath() const;
     std::string getLogFile() const;
 
+    cv::Size getWinStride() const;
+    cv::Size getPadding() const;
+
   private:
     bool debug;
     bool exitIfNoFrame;
+    bool useMeanshiftGrouping;
 
     int camNumber;
     int fps;
@@ -57,12 +65,18 @@ class Configuration {
 
     double ratioResizeWidth;
     double ratioResizeHeight;
+    double hitThreshold;
+    double scale;
+    double finalThreshold;
 
     std::string confFile;
     std::string camStream;
     std::string imageFile;
     std::string recordPath;
     std::string logFile;
+
+    cv::Size winStride;
+    cv::Size padding;
 
     std::map<std::string, std::string> data;
 

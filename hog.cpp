@@ -112,19 +112,25 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
       std::chrono::high_resolution_clock::time_point t2;
 
-      hog.detectMultiScale(frame, found);
-      t2 = std::chrono::high_resolution_clock::now();
+      // 
+      // Faire des essais sur le RPi avec les valeurs suivantes:
+      //
+      // cv::Size winStride = cv::Size(8, 8);
+      // cv::Size padding = cv::Size(32, 32);
 
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+      hog.detectMultiScale(frame, found, config.getHitThreshold(), config.getWinStride(), config.getPadding(), config.getScale(), config.getFinalThreshold(), config.getUseMeanshiftGrouping());
+
       // Draw rectangle around human
       drawRectangle(frame, found, found_filtered);
       recordPicture(config, frame, compression_params, found);
       // free memory before sleep
       frame.release();
+      t2 = std::chrono::high_resolution_clock::now();
       // clear vectors
       found.clear();
       found_filtered.clear();
 
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
       std::cerr << duration / 1000.0 << "ms" << std::endl;
     } else {
       hog.detectMultiScale(frame, found);

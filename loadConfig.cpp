@@ -10,16 +10,20 @@ Configuration::Configuration() {
   this->sleepTime = 0;
   this->videoWidth = 320;
   this->videoHeight = 240;
-  this->jpgQuality = 95;
+  this->jpgQuality = 75;
   this->ratioResizeWidth = 1;
   this->ratioResizeHeight = 1;
   this->confFile = "/etc/hogc/hogc.ini";
-  // this->confFile = "cfg/hogc_sample.ini";
   this->camStream = "";
   this->imageFile = "";
-  this->recordPath = "";
+  this->recordPath = "/tmp";
   this->logFile = "/var/log/hogc/errors.log";
-  // this->logFile = "errors.log";
+  hitThreshold = 0;
+  winStride = cv::Size(0, 0);
+  padding = cv::Size(0, 0);
+  scale = 1.05;
+  finalThreshold = 2.0;
+  useMeanshiftGrouping = false;
 }
 
 void Configuration::Clear() {
@@ -28,9 +32,10 @@ void Configuration::Clear() {
 
 void Configuration::GetConfig() {
   int timeInt;
+  int wX, wY, pX, pY;
 
   this->Get("debug", this->debug);
-  this->Get("exitNoFrame", this->exitIfNoFrame);
+  this->Get("exitIfNoFrame", this->exitIfNoFrame);
   this->Get("camNumber", this->camNumber);
   this->Get("fps", this->fps);
   this->Get("videoWidth", this->videoWidth);
@@ -44,19 +49,33 @@ void Configuration::GetConfig() {
   this->Get("imageFile", this->imageFile);
   this->Get("recordPath", this->recordPath);
   this->Get("logFile", this->logFile);
+
+  this->Get("hitThreshold", this->hitThreshold);
+
+  this->Get("winStrideX", wX);
+  this->Get("winStrideY", wY);
+  this->winStride = cv::Size(wX, wY);
+
+  this->Get("paddingX", pX);
+  this->Get("paddingY", pY);
+  this->padding = cv::Size(pX, pY);
+
+  this->Get("scale", this->scale);
+  this->Get("finalThreshold", this->finalThreshold);
+  this->Get("useMeanshiftGrouping", this->useMeanshiftGrouping);
 }
 
 void Configuration::GetParams(int argc, char **argv) {
   char option;
 
-  while((option = getopt(argc, argv, "ho:")) != EOF) {
+  while((option = getopt(argc, argv, "hi:")) != EOF) {
     switch(option) {
       case 'h':
         help();
         exit(EXIT_SUCCESS);
         break;
 
-      case 'o':
+      case 'i':
         this->confFile = optarg;
         break;
 
@@ -84,6 +103,12 @@ void Configuration::ShowAllValues() {
   std::cout << "Ratio height: " << this->ratioResizeHeight << std::endl;
   std::cout << "Config file path: " << this->confFile << std::endl;
   std::cout << "Log file path: " << this->logFile << std::endl;
+  std::cout << "hitThreshold: " << this->hitThreshold << std::endl;
+  std::cout << "winStride: " << this->winStride << std::endl;
+  std::cout << "padding: " << this->padding << std::endl;
+  std::cout << "scale: " << this->scale << std::endl;
+  std::cout << "finalThreshold: " << this->finalThreshold << std::endl;
+  std::cout << "useMeanshiftGrouping: " << this->useMeanshiftGrouping << std::endl;
 }
 
 bool Configuration::Load() {
@@ -207,6 +232,10 @@ bool Configuration::getExitIfNoFrame() const {
   return this->exitIfNoFrame;
 }
 
+bool Configuration::getUseMeanshiftGrouping() const {
+  return this->useMeanshiftGrouping;
+}
+
 int Configuration::getCamNumber() const {
   return this->camNumber;
 }
@@ -239,6 +268,18 @@ double Configuration::getRatioResizeHeight() const {
   return this->ratioResizeHeight;
 }
 
+double Configuration::getHitThreshold() const {
+  return this->hitThreshold;
+}
+
+double Configuration::getScale() const {
+  return this->scale;
+}
+
+double Configuration::getFinalThreshold() const {
+  return this->finalThreshold;
+}
+
 std::string Configuration::getCamStream() const {
   return this->camStream;
 }
@@ -253,4 +294,12 @@ std::string Configuration::getLogFile() const {
 
 std::string Configuration::getRecordPath() const {
   return this->recordPath;
+}
+
+cv::Size Configuration::getWinStride() const {
+  return this->winStride;
+}
+
+cv::Size Configuration::getPadding() const {
+  return this->padding;
 }
