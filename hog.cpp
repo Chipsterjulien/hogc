@@ -112,7 +112,7 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
       std::chrono::high_resolution_clock::time_point t2;
 
-      // 
+      //
       // Faire des essais sur le RPi avec les valeurs suivantes:
       //
       // cv::Size winStride = cv::Size(8, 8);

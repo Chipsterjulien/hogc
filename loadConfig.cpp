@@ -31,8 +31,8 @@ void Configuration::Clear() {
 }
 
 void Configuration::GetConfig() {
-  int timeInt;
-  int wX, wY, pX, pY;
+  int timeInt = 0;
+  int wX = 0, wY = 0, pX = 0, pY = 0;
 
   this->Get("debug", this->debug);
   this->Get("exitIfNoFrame", this->exitIfNoFrame);
@@ -66,7 +66,7 @@ void Configuration::GetConfig() {
 }
 
 void Configuration::GetParams(int argc, char **argv) {
-  char option;
+  int option = 0;
 
   while((option = getopt(argc, argv, "hi:")) != EOF) {
     switch(option) {
@@ -82,7 +82,7 @@ void Configuration::GetParams(int argc, char **argv) {
       default:
         help();
         exit(EXIT_FAILURE);
-        break;
+       break;
     }
   }
 }
@@ -121,7 +121,7 @@ bool Configuration::Load() {
   }
 
   while(inFile.good() && ! inFile.eof()) {
-    std::string line;
+    std::string line = "";
 
     getline(inFile, line);
     // filter out comments
