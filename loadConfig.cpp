@@ -2,7 +2,7 @@
 #include "hog.hpp"
 
 Configuration::Configuration() {
-  this->debug = false;
+  this->debug = true;
   this->exitIfNoFrame = false;
   // Autodetect default API
   this->camNumber = (0 + cv::CAP_ANY);
@@ -82,7 +82,7 @@ void Configuration::GetParams(int argc, char **argv) {
       default:
         help();
         exit(EXIT_FAILURE);
-       break;
+        break;
     }
   }
 }

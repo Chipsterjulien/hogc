@@ -97,8 +97,11 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
         log.Write("No image to process. Exiting … !");
         break;
       } else {
-        std::cerr << "I'm sleeping 1s and I will check a new frame" << std::endl;
-        log.Write("I'm sleeping 1s and I will check a new frame");
+        if (config.getDebug()) {
+          std::cerr << "I'm sleeping 1s and I will check a new frame" << std::endl;
+          log.Write("I'm sleeping 1s and I will check a new frame");
+        }
+
         usleep(1000000);
         continue;
       }
