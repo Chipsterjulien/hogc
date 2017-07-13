@@ -43,9 +43,11 @@ class Configuration {
     double getFinalThreshold() const;
 
     std::string getCamStream() const;
+    std::string getConfFile() const;
+    std::string getDetection() const;
     std::string getImageFile() const;
-    std::string getRecordPath() const;
     std::string getLogFile() const;
+    std::string getRecordPath() const;
 
     cv::Size getWinStride() const;
     cv::Size getPadding() const;
@@ -74,6 +76,7 @@ class Configuration {
     std::string imageFile;
     std::string recordPath;
     std::string logFile;
+    std::string detection;
 
     cv::Size winStride;
     cv::Size padding;

@@ -18,6 +18,7 @@ Configuration::Configuration() {
   this->imageFile = "";
   this->recordPath = "/tmp";
   this->logFile = "/var/log/hogc/errors.log";
+  this->detection = "default";
   hitThreshold = 0;
   winStride = cv::Size(0, 0);
   padding = cv::Size(0, 0);
@@ -50,6 +51,7 @@ void Configuration::GetConfig() {
   this->Get("recordPath", this->recordPath);
   this->Get("logFile", this->logFile);
 
+  this->Get("detection", this->detection);
   this->Get("hitThreshold", this->hitThreshold);
 
   this->Get("winStrideX", wX);
@@ -103,12 +105,13 @@ void Configuration::ShowAllValues() {
   std::cout << "Ratio height: " << this->ratioResizeHeight << std::endl;
   std::cout << "Config file path: " << this->confFile << std::endl;
   std::cout << "Log file path: " << this->logFile << std::endl;
-  std::cout << "hitThreshold: " << this->hitThreshold << std::endl;
-  std::cout << "winStride: " << this->winStride << std::endl;
-  std::cout << "padding: " << this->padding << std::endl;
-  std::cout << "scale: " << this->scale << std::endl;
-  std::cout << "finalThreshold: " << this->finalThreshold << std::endl;
-  std::cout << "useMeanshiftGrouping: " << this->useMeanshiftGrouping << std::endl;
+  std::cout << "Detect human: " << this->detection << std::endl;
+  std::cout << "HitThreshold: " << this->hitThreshold << std::endl;
+  std::cout << "WinStride: " << this->winStride << std::endl;
+  std::cout << "Padding: " << this->padding << std::endl;
+  std::cout << "Scale: " << this->scale << std::endl;
+  std::cout << "FinalThreshold: " << this->finalThreshold << std::endl;
+  std::cout << "UseMeanshiftGrouping: " << this->useMeanshiftGrouping << std::endl;
 }
 
 bool Configuration::Load() {
@@ -294,6 +297,14 @@ std::string Configuration::getLogFile() const {
 
 std::string Configuration::getRecordPath() const {
   return this->recordPath;
+}
+
+std::string Configuration::getDetection() const {
+  return this->detection;
+}
+
+std::string Configuration::getConfFile() const {
+  return this->confFile;
 }
 
 cv::Size Configuration::getWinStride() const {

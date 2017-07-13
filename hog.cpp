@@ -108,19 +108,15 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
     }
 
     // Resize frame with ratio
-    if (config.getRatioResizeWidth() != 1 || config.getRatioResizeHeight() != 1);
-    resize(frame, frame, cv::Size(), config.getRatioResizeWidth(), config.getRatioResizeHeight());
+    if (config.getRatioResizeWidth() != 1 || config.getRatioResizeHeight() != 1) {
+      resize(frame, frame, cv::Size(), config.getRatioResizeWidth(), config.getRatioResizeHeight());
+    }
 
     if (config.getDebug()) {
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
       std::chrono::high_resolution_clock::time_point t2;
 
-      //
-      // Faire des essais sur le RPi avec les valeurs suivantes:
-      //
-      // cv::Size winStride = cv::Size(8, 8);
-      // cv::Size padding = cv::Size(32, 32);
-
+      // detectMultiScaleFunc();
       hog.detectMultiScale(frame, found, config.getHitThreshold(), config.getWinStride(), config.getPadding(), config.getScale(), config.getFinalThreshold(), config.getUseMeanshiftGrouping());
 
       // Draw rectangle around human
@@ -136,7 +132,9 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
       std::cerr << duration / 1000.0 << "ms" << std::endl;
     } else {
-      hog.detectMultiScale(frame, found);
+
+      detectMultiScaleFunc(config, log, hog, frame, found);
+
       // Draw rectangle around human
       drawRectangle(frame, found, found_filtered);
       recordPicture(config, frame, compression_params, found);
@@ -153,6 +151,22 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
   }
 
   cv::destroyAllWindows();
+}
+
+void detectMultiScaleFunc(Configuration& config, Logging& log, cv::HOGDescriptor& hog, cv::Mat& frame, std::vector< cv::Rect >& found) {
+  std::string detection = config.getDetection();
+
+  if (detection == "default") {
+    hog.detectMultiScale(frame, found);
+  } else if (detection == "custom") {
+    hog.detectMultiScale(frame, found, config.getHitThreshold(), config.getWinStride(), config.getPadding(), config.getScale(), config.getFinalThreshold(), config.getUseMeanshiftGrouping());
+  } else {
+    std::string errorStr = config.getDetection();
+    errorStr.append(": unknown detection mode in \"").append(config.getConfFile()).append("\" file !");
+
+    std::cerr << errorStr << std::endl;
+    log.Write(errorStr);
+  }
 }
 
 void recordPicture(Configuration& config, cv::Mat& frame, std::vector<int>& compression_params, std::vector< cv::Rect >& found) {
