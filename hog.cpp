@@ -116,8 +116,7 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
       std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
       std::chrono::high_resolution_clock::time_point t2;
 
-      // detectMultiScaleFunc();
-      hog.detectMultiScale(frame, found, config.getHitThreshold(), config.getWinStride(), config.getPadding(), config.getScale(), config.getFinalThreshold(), config.getUseMeanshiftGrouping());
+      detectMultiScaleFunc(config, log, hog, frame, found);
 
       // Draw rectangle around human
       drawRectangle(frame, found, found_filtered);
@@ -132,7 +131,6 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
       std::cerr << duration / 1000.0 << "ms" << std::endl;
     } else {
-
       detectMultiScaleFunc(config, log, hog, frame, found);
 
       // Draw rectangle around human

@@ -27,6 +27,7 @@ class Configuration {
     bool getDebug() const;
     bool getExitIfNoFrame() const;
     bool getUseMeanshiftGrouping() const;
+    bool getDeltaSleepTime() const;
 
     int getCamNumber() const;
     int getFPS() const;
@@ -56,6 +57,7 @@ class Configuration {
     bool debug;
     bool exitIfNoFrame;
     bool useMeanshiftGrouping;
+    bool deltaSleepTime;
 
     int camNumber;
     int fps;

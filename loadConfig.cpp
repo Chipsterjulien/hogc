@@ -2,23 +2,24 @@
 #include "hog.hpp"
 
 Configuration::Configuration() {
-  this->debug = true;
-  this->exitIfNoFrame = false;
+  debug = true;
+  exitIfNoFrame = false;
   // Autodetect default API
-  this->camNumber = (0 + cv::CAP_ANY);
-  this->fps = 0;
-  this->sleepTime = 0;
-  this->videoWidth = 320;
-  this->videoHeight = 240;
-  this->jpgQuality = 75;
-  this->ratioResizeWidth = 1;
-  this->ratioResizeHeight = 1;
-  this->confFile = "/etc/hogc/hogc.ini";
-  this->camStream = "";
-  this->imageFile = "";
-  this->recordPath = "/tmp";
-  this->logFile = "/var/log/hogc/errors.log";
-  this->detection = "default";
+  camNumber = (0 + cv::CAP_ANY);
+  fps = 0;
+  deltaSleepTime = true;
+  sleepTime = 0;
+  videoWidth = 320;
+  videoHeight = 240;
+  jpgQuality = 75;
+  ratioResizeWidth = 1;
+  ratioResizeHeight = 1;
+  confFile = "/etc/hogc/hogc.ini";
+  camStream = "";
+  imageFile = "";
+  recordPath = "/tmp";
+  logFile = "/var/log/hogc/errors.log";
+  detection = "default";
   hitThreshold = 0;
   winStride = cv::Size(0, 0);
   padding = cv::Size(0, 0);
@@ -36,6 +37,7 @@ void Configuration::GetConfig() {
   int wX = 0, wY = 0, pX = 0, pY = 0;
 
   this->Get("debug", this->debug);
+  this->Get("deltaSleepTime", this->deltaSleepTime);
   this->Get("exitIfNoFrame", this->exitIfNoFrame);
   this->Get("camNumber", this->camNumber);
   this->Get("fps", this->fps);
@@ -98,6 +100,7 @@ void Configuration::ShowAllValues() {
   std::cout << "Jpg quality: " << this->jpgQuality << std::endl;
   std::cout << "Video width (camera): " << this->videoWidth << std::endl;
   std::cout << "Video height (camera): " << this->videoHeight << std::endl;
+  std::cout << "Delta sleep time: " << this->deltaSleepTime << std::endl;
   std::cout << "Sleep time: " << this->sleepTime << std::endl;
   std::cout << "Frame rate: " << this->fps << std::endl;
   std::cout << "Output record file: " << this->recordPath << std::endl;
@@ -229,6 +232,10 @@ std::string Configuration::Trim(const std::string& str) {
 
 bool Configuration::getDebug() const {
   return this->debug;
+}
+
+bool Configuration::getDeltaSleepTime() const {
+  return this->deltaSleepTime;
 }
 
 bool Configuration::getExitIfNoFrame() const {
