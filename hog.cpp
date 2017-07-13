@@ -146,7 +146,7 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
     }
 
     if (config.getSleepTime() > 0) {
-      usleep(config.getSleepTime());
+      usleep(config.getSleepTime() * 1000);
     }
   }
 
