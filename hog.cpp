@@ -145,13 +145,16 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
 
         if (diff < 0) {
           std::stringstream overtime;
-          overtime << "Diff is negative: " << diff << std::endl;
+          overtime << "Diff is negative: " << diff / 1000.0 << "ms" << std::endl;
 
           std::cerr << overtime.str();
           log.Write(overtime.str());
 
           usleep(sleepTime - diff);
         } else {
+          if (config.getDebug()) {
+            std::cerr << "Waiting " << diff / 1000.0 << "ms" << std::endl;
+          }
           usleep(diff);
         }
       } else {
