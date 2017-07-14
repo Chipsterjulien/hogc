@@ -77,10 +77,13 @@ void initCapture(Configuration& config, cv::VideoCapture& cap) {
 }
 
 void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv::Mat& frame, cv::HOGDescriptor& hog) {
+  int sleepTime = config.getSleepTime() * 1000;
+
   std::vector < cv::Rect > found, found_filtered;
   std::vector<int> compression_params;
   compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
   compression_params.push_back(config.getJPGQuality());
+  std::chrono::high_resolution_clock::time_point t1, t2;
 
   for(;;) {
     if (config.getImageFile() != "") {
@@ -102,49 +105,58 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
           log.Write("I'm sleeping 1s and I will check a new frame");
         }
 
-        usleep(1000000);
+        usleep(1000000); // Sleep 1s or 1 000 000 microseconds
         continue;
       }
     }
+
+    t1 = std::chrono::high_resolution_clock::now();
 
     // Resize frame with ratio
     if (config.getRatioResizeWidth() != 1 || config.getRatioResizeHeight() != 1) {
       resize(frame, frame, cv::Size(), config.getRatioResizeWidth(), config.getRatioResizeHeight());
     }
 
+    detectMultiScaleFunc(config, log, hog, frame, found);
+
+    // Draw rectangle around human
+    drawRectangle(frame, found, found_filtered);
+    recordPicture(config, frame, compression_params, found);
+    // free memory before sleep
+    frame.release();
+    // clear vectors
+    found.clear();
+    found_filtered.clear();
+
+    t2 = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
+
     if (config.getDebug()) {
-      std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-      std::chrono::high_resolution_clock::time_point t2;
+      std::stringstream durationInMs;
+      durationInMs << duration / 1000.0 << "ms" << std::endl;
 
-      detectMultiScaleFunc(config, log, hog, frame, found);
-
-      // Draw rectangle around human
-      drawRectangle(frame, found, found_filtered);
-      recordPicture(config, frame, compression_params, found);
-      // free memory before sleep
-      frame.release();
-      t2 = std::chrono::high_resolution_clock::now();
-      // clear vectors
-      found.clear();
-      found_filtered.clear();
-
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
-      std::cerr << duration / 1000.0 << "ms" << std::endl;
-    } else {
-      detectMultiScaleFunc(config, log, hog, frame, found);
-
-      // Draw rectangle around human
-      drawRectangle(frame, found, found_filtered);
-      recordPicture(config, frame, compression_params, found);
-      // free memory before sleep
-      frame.release();
-      // clear vectors
-      found.clear();
-      found_filtered.clear();
+      std::cerr << durationInMs.str();
+      log.Write(durationInMs.str());
     }
 
-    if (config.getSleepTime() > 0) {
-      usleep(config.getSleepTime() * 1000);
+    if (sleepTime > 0) {
+      if (config.getDeltaSleepTime()) {
+        auto diff = sleepTime - duration;
+
+        if (diff < 0) {
+          std::stringstream overtime;
+          overtime << "Diff is negative: " << diff << std::endl;
+
+          std::cerr << overtime.str();
+          log.Write(overtime.str());
+
+          usleep(sleepTime - diff);
+        } else {
+          usleep(diff);
+        }
+      } else {
+        usleep(sleepTime);
+      }
     }
   }
 
@@ -159,19 +171,25 @@ void detectMultiScaleFunc(Configuration& config, Logging& log, cv::HOGDescriptor
   } else if (detection == "custom") {
     hog.detectMultiScale(frame, found, config.getHitThreshold(), config.getWinStride(), config.getPadding(), config.getScale(), config.getFinalThreshold(), config.getUseMeanshiftGrouping());
   } else {
-    std::string errorStr = config.getDetection();
-    errorStr.append(": unknown detection mode in \"").append(config.getConfFile()).append("\" file !");
+    std::stringstream errorStr;
 
-    std::cerr << errorStr << std::endl;
-    log.Write(errorStr);
+    errorStr << "\"" << config.getDetection() << "\": unknown detection mode in \"" <<config.getConfFile() << "\" file !" << std::endl;
+
+    std::cerr << errorStr.str() << std::endl;
+    log.Write(errorStr.str());
   }
 }
 
 void recordPicture(Configuration& config, cv::Mat& frame, std::vector<int>& compression_params, std::vector< cv::Rect >& found) {
   if (found.size() != 0) {
-    std::string filename;
-    filename.append(config.getRecordPath()).append(getFilename()).append(".jpg");
-    imwrite(filename, frame, compression_params);
+    std::stringstream filename;
+    if (config.getRecordPath().at(config.getRecordPath().length()-1) != '/') {
+      filename << config.getRecordPath() << "/" << getFilename() << ".jpg";
+    } else {
+      filename << config.getRecordPath() << getFilename() << ".jpg";
+    }
+
+    imwrite(filename.str(), frame, compression_params);
   }
 
   if (config.getDebug() && found.size() != 0) {
