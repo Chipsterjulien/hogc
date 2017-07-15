@@ -121,7 +121,11 @@ bool Configuration::Load() {
   std::ifstream inFile((this->confFile).c_str());
 
   if (!inFile.good()) {
-    std::cerr << "Cannot read configuration file \"" << this->confFile << "\"" << std::endl;
+    std::stringstream errorStr;
+
+    errorStr << "Cannot read configuration file \"" << this->confFile << "\"" << std::endl;
+    std::cerr << errorStr.str();
+    std::cout << errorStr.str();
 
     return false;
   }

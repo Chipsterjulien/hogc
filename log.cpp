@@ -5,7 +5,12 @@ Logging::Logging(Configuration& config) {
   this->inFile.open(config.getLogFile(), std::ios::out | std::ios::ate);
 
   if(inFile.bad()) {
-    std::cerr << "Unable to open log file: " << config.getLogFile() << std::endl;
+    std::stringstream errorStr;
+
+    errorStr << "Unable to open log file: " << config.getLogFile() << std::endl;
+    std::cerr << errorStr.str();
+    std::cout << errorStr.str();
+
     exit(EXIT_FAILURE);
   }
 }

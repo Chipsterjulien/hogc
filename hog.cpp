@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   Logging log(config);
 
   if (config.getDebug()) {
-    std::cerr << "Configuration loaded" << std::endl;
+    std::cout << "Configuration loaded" << std::endl;
     log.Write("Configuration loaded");
     config.ShowAllValues();
   }
@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   searchHuman(config, log);
 
   if (config.getDebug()) {
-    std::cerr << "End of program in debug mode" << std::endl;
+    std::cout << "End of program in debug mode" << std::endl;
     log.Write("End of program in debug mode");
   }
 
@@ -96,16 +96,17 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
     // Check if frame is empty
     if (frame.empty()) {
       if (config.getExitIfNoFrame()) {
-        std::cerr << "No image to process. Exiting … !" << std::endl;
+        std::cout << "No image to process. Exiting … !" << std::endl;
         log.Write("No image to process. Exiting … !");
         break;
       } else {
         if (config.getDebug()) {
-          std::cerr << "I'm sleeping 1s and I will check a new frame" << std::endl;
+          std::cout << "I'm sleeping 1s and I will check a new frame" << std::endl;
           log.Write("I'm sleeping 1s and I will check a new frame");
         }
 
-        usleep(1000000); // Sleep 1s or 1 000 000 microseconds
+        // Sleep 1s or 1 000 000 microseconds since no frame found and it's daemon mode
+        usleep(1000000);
         continue;
       }
     }
@@ -133,9 +134,9 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
 
     if (config.getDebug()) {
       std::stringstream durationInMs;
-      durationInMs << duration / 1000.0 << "ms" << std::endl;
+      durationInMs << "Search human duration: " << duration / 1000.0 << "ms" << std::endl;
 
-      std::cerr << durationInMs.str();
+      std::cout << durationInMs.str();
       log.Write(durationInMs.str());
     }
 
@@ -145,19 +146,23 @@ void infiniteLoop(Configuration& config, Logging& log, cv::VideoCapture& cap, cv
 
         if (diff < 0) {
           std::stringstream overtime;
-          overtime << "Diff is negative: " << diff / 1000.0 << "ms" << std::endl;
+          overtime << "Search is too long. Diff is negative: " << diff / 1000.0 << "ms" << std::endl
+            << "Waiting " << sleepTime - diff << "ms" << std::endl;
 
-          std::cerr << overtime.str();
+          std::cout << overtime.str();
           log.Write(overtime.str());
 
           usleep(sleepTime - diff);
         } else {
           if (config.getDebug()) {
-            std::cerr << "Waiting " << diff / 1000.0 << "ms" << std::endl;
+            std::cout << "Waiting " << diff / 1000.0 << "ms" << std::endl;
           }
           usleep(diff);
         }
       } else {
+        if (config.getDebug()) {
+          std::cout << "Waiting: " << sleepTime / 1000.0 << "ms" << std::endl;
+        }
         usleep(sleepTime);
       }
     }
@@ -196,7 +201,7 @@ void recordPicture(Configuration& config, cv::Mat& frame, std::vector<int>& comp
   }
 
   if (config.getDebug() && found.size() != 0) {
-    std::cerr << "Found" << std::endl;
+    std::cout << "Found" << std::endl;
   }
 }
 
